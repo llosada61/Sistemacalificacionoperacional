@@ -6,10 +6,12 @@ Código software sistema embebido
 #include <HTTPClient.h>
 #include <WiFi.h>
 #include <WiFiMulti.h>
+#include <EasyBuzzer.h>
 WiFiMulti WiFiMulti;                        	// objeto conexion wifi
 HTTPClient client;                          	// cliente http
 const uint16_t port = 80;                   	// servidor y puerto a donde se va a conectar el dispositivo
-const char server[]="direccion api aplicacion";
+const char server[]="direccion api1 aplicacion";
+const char server1[]="direccion api2 aplicacion";
 DynamicJsonDocument doc(10000);           // objeto json para almacenar información recibida y enviada a servidor  
 TaskHandle_t manejadorTareaServidor= NULL;  	// manejador de tarea envío datos a servidor
 TaskHandle_t manejadorTareaSensor= NULL; // manejador de tarea sensado
@@ -17,13 +19,15 @@ TaskHandle_t manejadorTareaSensor= NULL; // manejador de tarea sensado
 #define LED 2
 #define pt 36
 #define pres 39
+#define buzz 16
+#define relay 4
 //declaracion de variables
 float lectura_pt100=0;
 float pt100Media=0;
 float pt100=0;
 float sensitivity=43.355;
 float offset = 3.2244;
-const int numReadings=5;
+const int numReadings=20;
 int readingsP[numReadings];
 int readingsT[numReadings];
 double sumP=0;
@@ -102,7 +106,7 @@ double lecturaMediaPresion()
 }
 void lecturaSensor(){
   int i;
-  delay(4);	// Frecuencia de muetreeo = 250 Hz
+  delay(4);	// Frecuencia de muetreeo = 10 Hz
   if (tomarDatos==true)
 	{
 	for (i=0;i<511;i++){imprimir2[i]=imprimir2[i+1];}    
@@ -119,6 +123,27 @@ void lecturaSensor(){
   	imprimir[j]=imprimir2[i];
   	j++;
 	}
+    if(pressure>=2.4)
+	  {
+      / * Crea una secuencia de pitidos con una frecuencia determinada. * /
+EasyBuzzer.beep (
+  frecuencia,		 // Frecuencia en hercios (HZ). 
+  onDuration, 		 // On Duración en milisegundos (ms). 
+  offDuration, 		 // Off Duración en milisegundos (ms). 
+  pitidos, 		 // El número de pitidos por ciclo. 
+  pauseDuration, 	 // Duración de la pausa. 
+  ciclos, 		 // El número de ciclo. 
+  callback		 // [Opcional] Función para llamar cuando termine. 
+);	  
+
+	  }
+	else
+	  {
+       digitalWrite(relay,LOW);
+	   digitalWrite(buzzer,LOW);
+	  } 
+
+
   }
   else{
   	Serial.print("aún no se inicia ejecución de tarea");
@@ -128,6 +153,9 @@ void lecturaSensor(){
 void setup(){
 	Serial.begin(115200);
 	pinMode(led, OUTPUT);
+	pinMode(buzzer, OUTPUT);
+	EasyBuzzer.setPin(buzzer);
+	pinMode(relay, OUTPUT);
 	pinMode(15, INPUT);
 	// CONFIGURACIÓN CONEXIÓN WIFI
 	WiFiMulti.addAP("redinalambrica", "clave"); // poner aquí clave y contraseña wifi
